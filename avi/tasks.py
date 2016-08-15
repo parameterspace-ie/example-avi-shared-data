@@ -4,6 +4,8 @@ GAVIP Example AVIS: Data Sharing AVI
 An example AVI pipeline is defined here, consisting of one task:
 
 - ProcessData - generates HTML from a VOTable
+@req: REQ-0006
+@comp: AVI Web System
 """
 
 import os
@@ -42,16 +44,18 @@ class ProcessVOTable(AviTask):
             settings.OUTPUT_PATH, self.outputFile
         ))
 
+    def input(self):
+        return AviLocalTarget(os.path.join(
+            settings.INPUT_PATH, self.sharedfile
+        ))
+
     def run(self):
 
         """
         Analyses the VOTable file containing the GACS-dev query results
         """
-        shared_file_path = os.path.join(
-            settings.INPUT_PATH, self.sharedfile
-        )
-        logger.error('Input VOTable file: %s' % shared_file_path)
-        t = Table.read(shared_file_path, format='votable')
+        logger.info('Input VOTable file: %s' % self.input().path)
+        t = Table.read(self.input().path, format='votable')
         df = pd.DataFrame(np.ma.filled(t.as_array()), columns=t.colnames)
 
         profile = pandas_profiling.ProfileReport(df)
@@ -59,6 +63,7 @@ class ProcessVOTable(AviTask):
         analysis_context = {'gacs_dfdescription': df.describe().to_html(classes='table table-striped table-bordered table-hover'),
                             'pandas_profiling': profile.html}
 
+        # logger.debug('analysis_context %s' % analysis_context)
         # JSON will be the context used for the template
         with open(self.output().path, 'wb') as out:
             json.dump(analysis_context, out)
