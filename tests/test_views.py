@@ -3,7 +3,7 @@
 @test: CU9-GAVIP-SYS-5-7
 """
 from django.test import TestCase
-from avi.models import SharedDataModel
+from avi.models import DemoModel
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -50,21 +50,21 @@ class ModelAVIViewsTestcase(TestCase):
         with open('/data/output/outputfile', 'a') as f:
             f.write('{"foobar": [[1.0, 0.0], [1.1, 0.1]]}')
 
-        job_id = SharedDataModel.objects.create(
-            sharedfile='sharedfile',
+        job_id = DemoModel.objects.create(
+            query='query',
             outputFile='outputfile'
         ).id
         # After the object is created, celery will immediately
         # start processing the job. Changing it's data
         # So get it AGAIN after creation.
-        self.job = SharedDataModel.objects.get(id=job_id)
+        self.job = DemoModel.objects.get(id=job_id)
 
     def tearDown(self):
         settings.STANDALONE = True
 
         os.remove('/data/output/outputfile')
 
-        SharedDataModel.objects.all().delete()
+        DemoModel.objects.all().delete()
 
     def test_main_page_is_ok_200(self):
         response = self.client.get(reverse('avi:index'))
@@ -141,31 +141,31 @@ once it is deployed in GAVIP.
         with open('/data/output/outputfile', 'a') as f:
             f.write('{"foobar": [[1.0, 0.0], [1.1, 0.1]]}')
 
-        job_id = SharedDataModel.objects.create(
-            sharedfile='sharedfile',
+        job_id = DemoModel.objects.create(
+            query='query',
             outputFile='outputfile'
         ).id
         # After the object is created, celery will immediately
         # start processing the job. Changing it's data
         # So get it AGAIN after creation.
-        self.job = SharedDataModel.objects.get(id=job_id)
+        self.job = DemoModel.objects.get(id=job_id)
 
     def tearDown(self):
         settings.STANDALONE = True
 
         os.remove('/data/output/outputfile')
 
-        SharedDataModel.objects.all().delete()
+        DemoModel.objects.all().delete()
 
 
     def test_run_query_page_get_ok_200(self):
         # /avi/run_query/
 
-        sharedfile = "SELECT DISTANCE(POINT('ICRS',ra,dec), POINT('ICRS',266.41683,-29.00781)) AS dist, * FROM public.gaia_source  WHERE 1=CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',266.41683,-29.00781, 0.08333333)) ORDER BY dist ASC"
+        query = "SELECT DISTANCE(POINT('ICRS',ra,dec), POINT('ICRS',266.41683,-29.00781)) AS dist, * FROM public.gaia_source  WHERE 1=CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',266.41683,-29.00781, 0.08333333)) ORDER BY dist ASC"
         outputFile = 'SampleFile_1451901076099.out'
 
         response = self.client.post(reverse('avi:run_query'),
-                                    {'sharedfile': sharedfile,
+                                    {'query': query,
                                      'outfile': outputFile})
         # Status code
         self.assertEqual(response.status_code, 200)
@@ -183,7 +183,7 @@ once it is deployed in GAVIP.
 
     def test_existing_job_pages_are_ok_200(self):
 
-        self.job = SharedDataModel.objects.get()
+        self.job = DemoModel.objects.get()
 
         # /avi/job_list/
         resp_job_page = self.client.get(reverse('avi:plugins:jobrequest_list'))
@@ -231,7 +231,7 @@ once it is deployed in GAVIP.
 
     def test_job_data_page_recieves_expected_context(self):
 
-        self.job = SharedDataModel.objects.get()
+        self.job = DemoModel.objects.get()
         # /avi/job_data/###/
         resp_job_data = self.client.get(reverse('avi:job_data',
                                         args=(self.job.id,)))
@@ -241,7 +241,7 @@ once it is deployed in GAVIP.
 
         # No templates used to render the response
 
-        self.job = SharedDataModel.objects.get()
+        self.job = DemoModel.objects.get()
         response = self.client.get(reverse('avi:job_data',
                                            args=(self.job.id,)))
         self.assertIn('{"foobar":[[1.0,0.0],[1.1,0.1]]}',
@@ -249,7 +249,7 @@ once it is deployed in GAVIP.
 
     def test_job_result_page_recieves_expected_context(self):
 
-        self.job = SharedDataModel.objects.get()
+        self.job = DemoModel.objects.get()
         #/avi/result/###/
         resp_job_result = self.client.get(reverse('avi:job_result',
                                                   args=(self.job.id,)))
@@ -260,7 +260,7 @@ once it is deployed in GAVIP.
 
     def test_job_result_page_returns_expected_content(self):
 
-        self.job = SharedDataModel.objects.get()
+        self.job = DemoModel.objects.get()
         response = self.client.get(reverse('avi:job_result',
                                            args=(self.job.id,)))
 
