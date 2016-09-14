@@ -17,10 +17,10 @@ class CurrentTasksTest(TestCase):
     """Test the tasks which run in Simple AVI"""
 
     def test_process_data(self):
-        query = "SELECT DISTANCE(POINT('ICRS',ra,dec), POINT('ICRS',266.41683,-29.00781)) AS dist, * FROM public.gaia_source  WHERE 1=CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',266.41683,-29.00781, 0.08333333)) ORDER BY dist ASC"
+        sharedfile = "SELECT DISTANCE(POINT('ICRS',ra,dec), POINT('ICRS',266.41683,-29.00781)) AS dist, * FROM public.gaia_source  WHERE 1=CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',266.41683,-29.00781, 0.08333333)) ORDER BY dist ASC"
         outputFile = 'test'
 
-        job_model = SharedDataModel.objects.create(query=query,
+        job_model = SharedDataModel.objects.create(sharedfile=sharedfile,
                                              outputFile=outputFile)
 
         self.assertTrue(os.path.isfile('/data/output/dummyData_test.vot') and

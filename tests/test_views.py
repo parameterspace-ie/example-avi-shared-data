@@ -51,7 +51,7 @@ class ModelAVIViewsTestcase(TestCase):
             f.write('{"foobar": [[1.0, 0.0], [1.1, 0.1]]}')
 
         job_id = SharedDataModel.objects.create(
-            query='query',
+            sharedfile='sharedfile',
             outputFile='outputfile'
         ).id
         # After the object is created, celery will immediately
@@ -142,7 +142,7 @@ once it is deployed in GAVIP.
             f.write('{"foobar": [[1.0, 0.0], [1.1, 0.1]]}')
 
         job_id = SharedDataModel.objects.create(
-            query='query',
+            sharedfile='sharedfile',
             outputFile='outputfile'
         ).id
         # After the object is created, celery will immediately
@@ -161,11 +161,11 @@ once it is deployed in GAVIP.
     def test_run_query_page_get_ok_200(self):
         # /avi/run_query/
 
-        query = "SELECT DISTANCE(POINT('ICRS',ra,dec), POINT('ICRS',266.41683,-29.00781)) AS dist, * FROM public.gaia_source  WHERE 1=CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',266.41683,-29.00781, 0.08333333)) ORDER BY dist ASC"
+        sharedfile = "SELECT DISTANCE(POINT('ICRS',ra,dec), POINT('ICRS',266.41683,-29.00781)) AS dist, * FROM public.gaia_source  WHERE 1=CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',266.41683,-29.00781, 0.08333333)) ORDER BY dist ASC"
         outputFile = 'SampleFile_1451901076099.out'
 
         response = self.client.post(reverse('avi:run_query'),
-                                    {'query': query,
+                                    {'sharedfile': sharedfile,
                                      'outfile': outputFile})
         # Status code
         self.assertEqual(response.status_code, 200)
