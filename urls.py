@@ -46,7 +46,7 @@ urlpatterns = patterns(
 
     url(r'^job_list/',
         include(job_list_urls,
-        namespace='plugins')),
+        namespace='job_list')),
 
     url(r'^run_query/$',
         views.run_query,
