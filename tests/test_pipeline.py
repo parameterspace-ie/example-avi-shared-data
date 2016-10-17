@@ -8,7 +8,6 @@ import datetime
 import avi.tasks as avi_tasks
 from avi.models import SharedDataModel
 
-from pipeline import manager
 from pipeline.models import AviJobRequest
 
 
