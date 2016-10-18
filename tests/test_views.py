@@ -50,14 +50,14 @@ class ModelAVIViewsTestcase(TestCase):
         with open('/data/output/outputfile', 'a') as f:
             f.write('{"foobar": [[1.0, 0.0], [1.1, 0.1]]}')
 
-        job_id = SharedDataModel.objects.create(
+        job = SharedDataModel.objects.create(
             sharedfile='sharedfile',
             outputFile='outputfile'
-        ).id
+        )
         # After the object is created, celery will immediately
         # start processing the job. Changing it's data
         # So get it AGAIN after creation.
-        self.job = SharedDataModel.objects.get(id=job_id)
+        self.job = SharedDataModel.objects.get(id=job.id)
 
     def tearDown(self):
         settings.STANDALONE = True
@@ -141,32 +141,16 @@ once it is deployed in GAVIP.
         with open('/data/output/outputfile', 'a') as f:
             f.write('{"foobar": [[1.0, 0.0], [1.1, 0.1]]}')
 
-        job_id = SharedDataModel.objects.create(
+        job = SharedDataModel.objects.create(
             sharedfile='sharedfile',
             outputFile='outputfile'
-        ).id
+        )
         # After the object is created, celery will immediately
         # start processing the job. Changing it's data
         # So get it AGAIN after creation.
-        self.job = SharedDataModel.objects.get(id=job_id)
+        self.job = SharedDataModel.objects.get(id=job.id)
 
 
-    def test_run_query_page_get_ok_200(self):
-        # /avi/run_query/
-
-        sharedfile = "SELECT DISTANCE(POINT('ICRS',ra,dec), POINT('ICRS',266.41683,-29.00781)) AS dist, * FROM public.gaia_source  WHERE 1=CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',266.41683,-29.00781, 0.08333333)) ORDER BY dist ASC"
-        outputFile = 'SampleFile_1451901076099.out'
-
-        response = self.client.post(reverse('avi:run_query'),
-                                    {'sharedfile': sharedfile,
-                                     'outFile': outputFile})
-        # Status code
-        self.assertEqual(response.status_code, 200)
-        # Context
-        self.assertIsNone(response.context)
-        # Content
-        self.assertEqual('{}',
-                         response.content)
 
     def test_non_existent_job_pages_404(self):
 
@@ -215,7 +199,7 @@ once it is deployed in GAVIP.
         # self.assertIn('%s' % reformatted_date,
         #               resp_job_page.content)
 
-        self.assertIn('%s' % self.job.request.pipeline_state.progress,
+        self.assertIn('100.0',
                       resp_job_page.content)
         self.assertIn(self.job.request.pipeline_state.exception,
                       resp_job_page.content)
@@ -246,7 +230,7 @@ once it is deployed in GAVIP.
                                                   args=(self.job.id,)))
         self.assertIn('job_id',
                       resp_job_result.context)
-        self.assertEqual('1',
+        self.assertEqual(1,
                          resp_job_result.context['job_id'])
 
     def test_job_result_page_returns_expected_content(self):
