@@ -30,8 +30,6 @@ from django.views.decorators.http import require_http_methods
 
 from avi.models import SharedDataModel
 
-from pipeline import manager
-
 from gavip_avi.decorators import require_gavip_role  # use this to restrict access to views in an AVI
 ROLES = settings.GAVIP_ROLES
 
@@ -86,24 +84,13 @@ def run_query(request):
     return JsonResponse({})
 
 
+
 @require_http_methods(["GET"])
 def job_result(request, job_id):
     job = get_object_or_404(SharedDataModel, request_id=job_id)
-    file_path = manager.get_pipeline_status(job_id)['output']
-    context = {'job_id': job_id}
+    file_path = job.request.result_path
+    context = {'job_id': job.id}
     with open(file_path, 'r') as out_file:
         context.update(json.load(out_file))
     return render(request, 'avi/job_result.html', context=context)
-
-
-@require_http_methods(["GET"])
-def job_result_public(request, job_id, celery_task_id):
-    """
-    @req: REQ-0035
-    @comp: AVI Authentication and Authorization
-    """
-    job = get_object_or_404(SharedDataModel, request_id=job_id)
-    if celery_task_id == job.request.celery_task_id:
-        return job_result(request, job_id)
-    else:
-        raise ObjectDoesNotExist("Invalid public URL")
+    

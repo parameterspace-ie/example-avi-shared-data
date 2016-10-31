@@ -3,7 +3,7 @@
 @test: CU9-GAVIP-SYS-5-7
 """
 from django.test import TestCase
-from avi.models import DemoModel
+from avi.models import SharedDataModel
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -11,8 +11,31 @@ from django.conf import settings
 from pipeline.models import AviJobRequest, PipeState
 
 import os
+import sys
 
-# Create your tests here.
+def assertIn3(test_for, test_against): #use when bytes-string issue with python3
+    if sys.version[0] == 2:
+        return self.assertIn(test_for, test_against)
+    elif sys.version[0] == 3:
+        return self.assertIn(bytes(test_for, encoding="UTF-8"), test_against)
+    else:
+        return "ERROR with python version"
+
+def assertNotIn3(test_for, test_against): #use when bytes-string issue with python3
+    if sys.version[0] == 2:
+        return self.assertNotIn(test_for, test_against)
+    elif sys.version[0] == 3:
+        return self.assertNotIn(bytes(test_for, encoding="UTF-8"), test_against)
+    else:
+        return "ERROR with python version"
+
+def assertEqual3(test_for, test_against): #use when bytes-string issue with python3
+    if sys.version[0] == 2:
+        return self.assertEqual(test_for, test_against)
+    elif sys.version[0] == 3:
+        return self.assertEqual(bytes(test_for, encoding="UTF-8"), test_against)
+    else:
+        return "ERROR with python version"
 
 
 class ModelAVIViewsTestcase(TestCase):
@@ -50,21 +73,21 @@ class ModelAVIViewsTestcase(TestCase):
         with open('/data/output/outputfile', 'a') as f:
             f.write('{"foobar": [[1.0, 0.0], [1.1, 0.1]]}')
 
-        job_id = DemoModel.objects.create(
-            query='query',
+        job = SharedDataModel.objects.create(
+            sharedfile='sharedfile',
             outputFile='outputfile'
-        ).id
+        )
         # After the object is created, celery will immediately
         # start processing the job. Changing it's data
         # So get it AGAIN after creation.
-        self.job = DemoModel.objects.get(id=job_id)
+        self.job = SharedDataModel.objects.get(id=job.id)
 
     def tearDown(self):
         settings.STANDALONE = True
 
         os.remove('/data/output/outputfile')
 
-        DemoModel.objects.all().delete()
+        SharedDataModel.objects.all().delete()
 
     def test_main_page_is_ok_200(self):
         response = self.client.get(reverse('avi:index'))
@@ -98,9 +121,9 @@ class ModelAVIViewsTestcase(TestCase):
         self.assertTemplateUsed(response,
                                 'avi/panel_help.html')
 
-        self.assertIn('Simple AVI',
+        assertIn3('Data Sharing AVI',
                       response.content)
-        self.assertIn('SampleFile_%s.out' % response.context['millis'],
+        assertIn3('SampleFile_%s.out' % response.context['millis'],
                       response.content)
 
 
@@ -141,39 +164,16 @@ once it is deployed in GAVIP.
         with open('/data/output/outputfile', 'a') as f:
             f.write('{"foobar": [[1.0, 0.0], [1.1, 0.1]]}')
 
-        job_id = DemoModel.objects.create(
-            query='query',
+        job = SharedDataModel.objects.create(
+            sharedfile='sharedfile',
             outputFile='outputfile'
-        ).id
+        )
         # After the object is created, celery will immediately
         # start processing the job. Changing it's data
         # So get it AGAIN after creation.
-        self.job = DemoModel.objects.get(id=job_id)
-
-    def tearDown(self):
-        settings.STANDALONE = True
-
-        os.remove('/data/output/outputfile')
-
-        DemoModel.objects.all().delete()
+        self.job = SharedDataModel.objects.get(id=job.id)
 
 
-    def test_run_query_page_get_ok_200(self):
-        # /avi/run_query/
-
-        query = "SELECT DISTANCE(POINT('ICRS',ra,dec), POINT('ICRS',266.41683,-29.00781)) AS dist, * FROM public.gaia_source  WHERE 1=CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',266.41683,-29.00781, 0.08333333)) ORDER BY dist ASC"
-        outputFile = 'SampleFile_1451901076099.out'
-
-        response = self.client.post(reverse('avi:run_query'),
-                                    {'query': query,
-                                     'outfile': outputFile})
-        # Status code
-        self.assertEqual(response.status_code, 200)
-        # Context
-        self.assertIsNone(response.context)
-        # Content
-        self.assertEqual('{}',
-                         response.content)
 
     def test_non_existent_job_pages_404(self):
 
@@ -183,10 +183,10 @@ once it is deployed in GAVIP.
 
     def test_existing_job_pages_are_ok_200(self):
 
-        self.job = DemoModel.objects.get()
+        self.job = SharedDataModel.objects.get()
 
         # /avi/job_list/
-        resp_job_page = self.client.get(reverse('avi:plugins:jobrequest_list'))
+        resp_job_page = self.client.get(reverse('avi:job_list:jobrequest_list'))
         self.assertEqual(resp_job_page.status_code, 200)
         # /avi/job_data/###/
         resp_job_data = self.client.get(reverse('avi:job_data',
@@ -201,37 +201,35 @@ once it is deployed in GAVIP.
     def test_job_list_page_recieves_expected_context(self):
 
         # /avi/job_list/
-        resp_job_page = self.client.get(reverse('avi:plugins:jobrequest_list'))
+        resp_job_page = self.client.get(reverse('avi:job_list:jobrequest_list'))
         self.assertIsNone(resp_job_page.context)
 
     def test_job_list_page_returns_expected_content(self):
 
         # /avi/job_list/
-        resp_job_page = self.client.get(reverse('avi:plugins:jobrequest_list'))
+        resp_job_page = self.client.get(reverse('avi:job_list:jobrequest_list'))
 
         # No templates used to render the response
 
-        self.assertIn(self.job.request.result_path,
+        assertIn3(self.job.request.result_path,
                       resp_job_page.content)
-        self.assertIn(self.job.request.pipeline_state.state,
+        assertIn3(self.job.request.pipeline_state.state,
                       resp_job_page.content)
-        self.assertIn(self.job.request.public_result_path,
-                      resp_job_page.content)
-        self.assertIn('%s' % self.job.request_id,
+        assertIn3('%s' % self.job.request_id,
                       resp_job_page.content)
 
         # reformatted_date = self.job.request.created.strftime('%m/%d/%Y %-I')
         # self.assertIn('%s' % reformatted_date,
         #               resp_job_page.content)
 
-        self.assertIn('%s' % self.job.request.pipeline_state.progress,
+        assertIn3('100.0',
                       resp_job_page.content)
-        self.assertIn(self.job.request.pipeline_state.exception,
+        assertIn3(self.job.request.pipeline_state.exception,
                       resp_job_page.content)
 
     def test_job_data_page_recieves_expected_context(self):
 
-        self.job = DemoModel.objects.get()
+        self.job = SharedDataModel.objects.get()
         # /avi/job_data/###/
         resp_job_data = self.client.get(reverse('avi:job_data',
                                         args=(self.job.id,)))
@@ -241,26 +239,26 @@ once it is deployed in GAVIP.
 
         # No templates used to render the response
 
-        self.job = DemoModel.objects.get()
+        self.job = SharedDataModel.objects.get()
         response = self.client.get(reverse('avi:job_data',
                                            args=(self.job.id,)))
-        self.assertIn('{"foobar":[[1.0,0.0],[1.1,0.1]]}',
+        assertIn3('{"foobar":[[1.0,0.0],[1.1,0.1]]}',
                       response.content)
 
     def test_job_result_page_recieves_expected_context(self):
 
-        self.job = DemoModel.objects.get()
+        self.job = SharedDataModel.objects.get()
         #/avi/result/###/
         resp_job_result = self.client.get(reverse('avi:job_result',
                                                   args=(self.job.id,)))
         self.assertIn('job_id',
                       resp_job_result.context)
-        self.assertEqual('1',
+        self.assertEqual(1,
                          resp_job_result.context['job_id'])
 
     def test_job_result_page_returns_expected_content(self):
 
-        self.job = DemoModel.objects.get()
+        self.job = SharedDataModel.objects.get()
         response = self.client.get(reverse('avi:job_result',
                                            args=(self.job.id,)))
 
@@ -271,8 +269,16 @@ once it is deployed in GAVIP.
         self.assertTemplateUsed(response,
                                 'avi/panel_result.html')
 
-        self.assertIn('GAVIP Example AVIs: Simple AVI'
+        assertIn3('GAVIP Example AVIs: Simple AVI'
                       + ' (Result %s)' % self.job.id,
                       response.content)
-        self.assertIn('Result view help',
+        assertIn3('Result view help',
                       response.content)
+
+
+    def tearDown(self):
+        settings.STANDALONE = True
+
+        os.remove('/data/output/outputfile')
+
+        SharedDataModel.objects.all().delete()

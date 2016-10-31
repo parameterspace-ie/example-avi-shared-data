@@ -58,9 +58,12 @@ class ProcessVOTable(AviTask):
         t = Table.read(self.input().path, format='votable')
         df = pd.DataFrame(np.ma.filled(t.as_array()), columns=t.colnames)
 
-        profile = pandas_profiling.ProfileReport(df)
+        gaiamagcols=['dec', 'dist', 'phot_g_mean_flux', 'phot_g_mean_mag', 'ra', 'source_id']
+        gaiadf = df[gaiamagcols]
 
-        analysis_context = {'gacs_dfdescription': df.describe().to_html(classes='table table-striped table-bordered table-hover'),
+        profile = pandas_profiling.ProfileReport(gaiadf)
+
+        analysis_context = {'gacs_dfdescription': gaiadf.describe().to_html(classes='table table-striped table-bordered table-hover'),
                             'pandas_profiling': profile.html}
 
         # logger.debug('analysis_context %s' % analysis_context)
